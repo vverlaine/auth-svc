@@ -1,13 +1,27 @@
+server:
+  port: 8080
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/microservicios
     username: admin
     password: admin
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
 
 app:
   jwt:
     secret: ${APP_JWT_SECRET:this-is-a-dev-secret-change-it}
-    expiration-minutes: 120
+    expiration-minutes: ${APP_JWT_EXP_MIN:120}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
