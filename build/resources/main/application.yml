@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/microservicios
+    username: admin
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:this-is-a-dev-secret-change-it}
+    expiration-minutes: 120
