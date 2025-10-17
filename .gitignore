@@ -5,3 +5,5 @@ src/main/resources/application.yml
 **/nb-cache/
 *.ser
 .env.jwt
+build/libs/auth-svc-0.0.1-SNAPSHOT.jar
+build/tmp/compileJava/previous-compilation-data.bin

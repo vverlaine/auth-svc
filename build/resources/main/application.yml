@@ -1,27 +1,20 @@
+# src/main/resources/application.yml
 server:
-  port: 8080
-
+  port: ${PORT:8080}
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/microservicios
-    username: admin
-    password: admin
-    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    open-in-view: false
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:this-is-a-dev-secret-change-it}
+    # en prod viene por env var
+    secret: ${APP_JWT_SECRET}
     expiration-minutes: ${APP_JWT_EXP_MIN:120}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
