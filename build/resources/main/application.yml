@@ -15,6 +15,5 @@ spring:
 
 app:
   jwt:
-    # en prod viene por env var
     secret: ${APP_JWT_SECRET}
     expiration-minutes: ${APP_JWT_EXP_MIN:120}
