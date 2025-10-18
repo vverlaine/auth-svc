@@ -1,40 +1,41 @@
 package com.proyecto.auth.service;
 
-import com.proyecto.auth.entity.Role;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;      // <-- ESTE IMPORT
-import io.jsonwebtoken.security.Keys;    // <-- Y ESTE
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.time.Instant;
 import java.util.Date;
-import java.util.Map;
 
 @Service
 public class JwtService {
 
-    private final Key key;
-    private final long expirationMillis;
+    private final Key secretKey;
 
-    public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-minutes}") long expirationMinutes
-    ) {
-        // secret debe venir en Base64 (>= 256 bits). Ej: export APP_JWT_SECRET="$(openssl rand -base64 48)"
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        this.expirationMillis = expirationMinutes * 60_000;
+    public JwtService(@Value("${jwt.secret}") String secret) {
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generate(String subjectEmail, Role role) {
-        Instant now = Instant.now();
+    public String generate(String subject, String role) {
+        long now = System.currentTimeMillis();
         return Jwts.builder()
-                .setSubject(subjectEmail)
-                .addClaims(Map.of("role", role.name()))
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plusMillis(expirationMillis)))
-                .signWith(key)
+                .setSubject(subject)
+                .claim("role", role)
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + 1000L * 60 * 60 * 8))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String getSubject(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 }

@@ -1,6 +1,6 @@
 # src/main/resources/application.yml
 server:
-  port: ${PORT:8080}
+  port: ${PORT:8099}
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}
@@ -15,7 +15,7 @@ spring:
         # Se agrega defalult schema de la base de datos
         default_schema: app
 
-app:
-  jwt:
-    secret: ${APP_JWT_SECRET}
-    expiration-minutes: ${APP_JWT_EXP_MIN:120}
+jwt:
+  secret: ${APP_JWT_SECRET}
+  issuer: ops-auth
+  expiration-minutes: ${APP_JWT_EXP_MIN:120}
