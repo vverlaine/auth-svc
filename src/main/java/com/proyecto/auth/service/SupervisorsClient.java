@@ -9,7 +9,11 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -22,17 +26,26 @@ public class SupervisorsClient {
 
     private final RestTemplate restTemplate;
     private final String baseUrl;
+    private final String authHeaderValue;
 
     public SupervisorsClient(RestTemplate restTemplate,
-                             @Value("${ops.supervisors.base-url}") String baseUrl) {
+                             @Value("${ops.supervisors.base-url}") String baseUrl,
+                             @Value("${ops.supervisors.auth-token:}") String authToken) {
         this.restTemplate = restTemplate;
         this.baseUrl = baseUrl;
+        if (StringUtils.hasText(authToken)) {
+            this.authHeaderValue = authToken.startsWith("Bearer ") || authToken.startsWith("Basic ")
+                    ? authToken
+                    : "Bearer " + authToken;
+        } else {
+            this.authHeaderValue = null;
+        }
     }
 
     public List<SupervisorInfo> fetchAll() {
         try {
             ResponseEntity<SupervisorInfo[]> response =
-                    restTemplate.getForEntity(baseUrl + "/supervisors", SupervisorInfo[].class);
+                    restTemplate.exchange(baseUrl + "/supervisors", HttpMethod.GET, httpEntity(), SupervisorInfo[].class);
             if (response.getBody() == null) {
                 return Collections.emptyList();
             }
@@ -46,7 +59,7 @@ public class SupervisorsClient {
     public Optional<SupervisorInfo> fetchById(UUID supervisorId) {
         try {
             ResponseEntity<SupervisorInfo> response =
-                    restTemplate.getForEntity(baseUrl + "/supervisors/{id}", SupervisorInfo.class, supervisorId);
+                    restTemplate.exchange(baseUrl + "/supervisors/{id}", HttpMethod.GET, httpEntity(), SupervisorInfo.class, supervisorId);
             return Optional.ofNullable(response.getBody());
         } catch (HttpClientErrorException.NotFound ex) {
             return Optional.empty();
@@ -54,5 +67,14 @@ public class SupervisorsClient {
             log.error("Failed to fetch supervisor {} from {}", supervisorId, baseUrl, ex);
             throw new IllegalStateException("No se pudo validar el supervisor indicado", ex);
         }
+    }
+
+    private HttpEntity<?> httpEntity() {
+        if (authHeaderValue == null) {
+            return HttpEntity.EMPTY;
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, authHeaderValue);
+        return new HttpEntity<>(headers);
     }
 }
