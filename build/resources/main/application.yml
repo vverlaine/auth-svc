@@ -22,5 +22,5 @@ jwt:
 
 ops:
   supervisors:
-    base-url: ${SUPERVISORS_SVC_URL:http://supervisors-svc:8096}
+    base-url: ${SUPERVISORS_SVC_URL:http://supervisors-svc:8080}
     auth-token: ${SUPERVISORS_SVC_TOKEN:}
