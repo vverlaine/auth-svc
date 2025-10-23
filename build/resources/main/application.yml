@@ -19,3 +19,7 @@ jwt:
   secret: ${APP_JWT_SECRET}
   issuer: ops-auth
   expiration-minutes: ${APP_JWT_EXP_MIN:120}
+
+ops:
+  supervisors:
+    base-url: ${SUPERVISORS_SVC_URL:http://supervisors-svc:8080}
