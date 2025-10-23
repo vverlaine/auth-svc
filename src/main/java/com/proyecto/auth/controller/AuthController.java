@@ -3,10 +3,17 @@ package com.proyecto.auth.controller;
 import com.proyecto.auth.model.User;
 import com.proyecto.auth.repo.UserRepository;
 import com.proyecto.auth.service.PasswordService;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.proyecto.auth.web.UserResponse;
 
 @RestController
 @RequestMapping("/auth")
@@ -14,10 +21,21 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     // ---------- DTOs ----------
-    private record LoginRequest(@Email String email, @NotBlank String password) { }
-    private record LoginResponse(String email, String name, String role) { }
-    public  record RegisterRequest(String email, String password, String name, String role) { }
-    public  record ErrorResponse(String error) { }
+    private record LoginRequest(@Email String email, @NotBlank String password) {
+
+    }
+
+    private record LoginResponse(UUID id, String email, String name, String role) {
+
+    }
+
+    public record RegisterRequest(String email, String password, String name, String role) {
+
+    }
+
+    public record ErrorResponse(String error) {
+
+    }
 
     // ---------- Dependencias ----------
     private final UserRepository repo;
@@ -38,7 +56,7 @@ public class AuthController {
             return ResponseEntity.status(401).body(new ErrorResponse("Invalid credentials"));
         }
         // Sin token: regresamos datos necesarios para el portal (email/name/role)
-        return ResponseEntity.ok(new LoginResponse(user.getEmail(), user.getName(), user.getRole().name()));
+        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getEmail(), user.getName(), user.getRole().name()));
     }
 
     @PostMapping("/register")
@@ -64,6 +82,46 @@ public class AuthController {
         u.setPasswordHash(passwordService.encode(req.password()));
 
         var saved = repo.save(u);
-        return ResponseEntity.ok(new LoginResponse(saved.getEmail(), saved.getName(), saved.getRole().name()));
+        return ResponseEntity.ok(new LoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getRole().name()));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserResponse>> listUsers() {
+        var users = repo.findAll().stream()
+                .map(u -> new UserResponse(
+                u.getId(),
+                u.getName(),
+                u.getEmail(),
+                u.getRole().name()
+        ))
+                .toList();
+        return ResponseEntity.ok(users);
+    }
+
+    // Eliminar usuario por id
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable java.util.UUID id) {
+        if (!repo.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        repo.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Cambiar rol de usuario por id
+    @PutMapping("/users/{id}/role")
+    public ResponseEntity<?> changeUserRole(@PathVariable java.util.UUID id, @RequestParam String role) {
+        var userOpt = repo.findById(id);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        User user = userOpt.get();
+        try {
+            user.setRole(User.Role.valueOf(role.trim().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid role"));
+        }
+        repo.save(user);
+        return ResponseEntity.ok(new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole().name()));
     }
 }
