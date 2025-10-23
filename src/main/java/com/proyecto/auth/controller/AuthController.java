@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.proyecto.auth.web.UserResponse;
 import org.slf4j.Logger;
@@ -126,13 +128,24 @@ public class AuthController {
 
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> listUsers() {
+        Map<UUID, UUID> supervisorByUser = teamMemberRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        TeamMember::getUserId,
+                        TeamMember::getTeamId,
+                        (existing, replacement) -> existing
+                ));
         var users = repo.findAll().stream()
-                .map(u -> new UserResponse(
-                u.getId(),
-                u.getName(),
-                u.getEmail(),
-                u.getRole().name()
-        ))
+                .map(u -> {
+                    UUID supervisorId = supervisorByUser.get(u.getId());
+                    return new UserResponse(
+                            u.getId(),
+                            u.getName(),
+                            u.getEmail(),
+                            u.getRole().name(),
+                            supervisorId,
+                            supervisorId
+                    );
+                })
                 .toList();
         return ResponseEntity.ok(users);
     }
@@ -161,7 +174,17 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new ErrorResponse("Invalid role"));
         }
         repo.save(user);
-        return ResponseEntity.ok(new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole().name()));
+        UUID supervisorId = teamMemberRepository.findFirstByIdUserId(user.getId())
+                .map(TeamMember::getTeamId)
+                .orElse(null);
+        return ResponseEntity.ok(new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name(),
+                supervisorId,
+                supervisorId
+        ));
     }
 
     @GetMapping("/supervisors")
