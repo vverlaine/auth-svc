@@ -15,8 +15,15 @@ public class JwtService {
 
     private final Key secretKey;
 
-    public JwtService(@Value("${jwt.secret}") String secret) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    public JwtService(@Value("${jwt.secret:${APP_JWT_SECRET:}}") String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT secret not configured. Set APP_JWT_SECRET or jwt.secret");
+        }
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes for HS256");
+        }
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generate(String subject, String role) {
