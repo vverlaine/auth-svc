@@ -29,14 +29,22 @@ public class SupervisorsClient {
     private final String authHeaderValue;
 
     public SupervisorsClient(RestTemplate restTemplate,
-                             @Value("${ops.supervisors.base-url}") String baseUrl,
-                             @Value("${ops.supervisors.auth-token:}") String authToken) {
+                             @Value("${ops.supervisors.base-url:#{null}}") String configuredBaseUrl,
+                             @Value("${ops.supervisors.auth-token:#{null}}") String configuredAuthToken) {
         this.restTemplate = restTemplate;
-        this.baseUrl = baseUrl;
-        if (StringUtils.hasText(authToken)) {
-            this.authHeaderValue = authToken.startsWith("Bearer ") || authToken.startsWith("Basic ")
-                    ? authToken
-                    : "Bearer " + authToken;
+        String envBaseUrl = System.getenv("SUPERVISORS_SVC_URL");
+        String resolvedBaseUrl = StringUtils.hasText(configuredBaseUrl) ? configuredBaseUrl : envBaseUrl;
+        if (!StringUtils.hasText(resolvedBaseUrl)) {
+            resolvedBaseUrl = "http://localhost:8096";
+        }
+        this.baseUrl = resolvedBaseUrl;
+
+        String envAuthToken = System.getenv("SUPERVISORS_SVC_TOKEN");
+        String resolvedAuthToken = StringUtils.hasText(configuredAuthToken) ? configuredAuthToken : envAuthToken;
+        if (StringUtils.hasText(resolvedAuthToken)) {
+            this.authHeaderValue = resolvedAuthToken.startsWith("Bearer ") || resolvedAuthToken.startsWith("Basic ")
+                    ? resolvedAuthToken
+                    : "Bearer " + resolvedAuthToken;
         } else {
             this.authHeaderValue = null;
         }
